@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Define variables
         DOCKER_IMAGE       = '66070263/fastapi-webhook:latest'
         DOCKER_CREDENTIALS = credentials('dockerhub')
     }
@@ -10,33 +9,25 @@ pipeline {
     stages {
         stage('Start Jenkins') {
             steps {
-                // Checkout your source code from version control
-             
-                    sh 'echo Start Jenkins............'
-                    sh 'echo docker : user = $DOCKER_CREDENTIALS_USR : password = $DOCKER_CREDENTIALS_PSW'
+                sh 'echo Start Jenkins............'
+                sh 'echo docker : user = $DOCKER_CREDENTIALS_USR : password = $DOCKER_CREDENTIALS_PSW'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                    // Build the Docker image
-                    
-                    dir('./03_Jenkins/week13/03_Github_webhook') {
-                       sh 'echo "Running in $(pwd)"'
-                       sh 'echo start build the Docker image = $DOCKER_IMAGE'
-                       sh 'docker build -t $DOCKER_IMAGE .'
-                    }   
-                  
+                dir('./03_Jenkins/week13/03_Github_webhook') {
+                    sh 'echo "Running in $(pwd)"'
+                    sh 'echo start build the Docker image = $DOCKER_IMAGE'
+                    sh 'docker build -t $DOCKER_IMAGE .'
+                }   
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    
-                    // Login to Docker Hub
                     sh 'echo $DOCKER_CREDENTIALS_PSW | docker login --username $DOCKER_CREDENTIALS_USR --password-stdin'
-                    // Push the image
                     sh 'docker push $DOCKER_IMAGE'
                 }
             }
@@ -45,22 +36,18 @@ pipeline {
         stage('Clear Docker Components') {
             steps {
                 script {
-                    // Remove Docker images and containers
                     sh 'docker stop $(docker ps -a -q) || true'  
-                    sh  'docker rm $(docker ps -a -q) || true' 
-                    sh  'docker rmi $(docker images -q) || true'
+                    sh 'docker rm $(docker ps -a -q) || true' 
+                    sh 'docker rmi $(docker images -q) || true'
                     sh 'docker system prune -af'
                 }
             }
         }
 
-
         stage('Deploy') {
             steps {
                 script {
-                    // Pull the Docker image from Docker Hub
                     sh 'docker pull $DOCKER_IMAGE'
-                    // Run the Docker container
                     sh 'docker run -d --name fastapi-webhook -p 8085:80 $DOCKER_IMAGE'
                 }
             }
@@ -69,8 +56,9 @@ pipeline {
 
     post {
         always {
-            // Logout from Docker Hub
-            sh 'docker logout'
+            node {
+                sh 'docker logout'
+            }
         }
     }
 }
